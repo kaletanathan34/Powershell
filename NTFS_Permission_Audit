@@ -1,0 +1,103 @@
+Install-Module -Name NTFSSecurity -Force
+
+# Define the file server and the root directory to start the scan
+$server = "<servername>"
+$rootDirectory = "\\$server\Share"
+
+# Define the output CSV file
+$outputCsv = "C:\Documents\NTFS_Permissions_FileServerReport.csv"
+
+# Ensure the NTFSSecurity module is imported
+Import-Module NTFSSecurity
+
+# Function to get NTFS permissions on folders and subfolders
+function Get-NTFSPermissions {
+    param (
+        [string]$path
+    )
+
+    $acl = Get-NTFSAccess $path -ExcludeInherited
+    foreach ($entry in $acl) {
+        [PSCustomObject]@{
+            Path           = $path
+            Identity       = $entry.Account
+            AccessControl  = $entry.AccessControlType
+            Permissions    = $entry.FileSystemRights
+            IsInherited    = $entry.IsInherited
+        }
+    }
+}
+
+# Recursive function to scan directories and subdirectories
+function Get-AllPermissions {
+    param (
+        [string]$path
+    )
+
+    $permissions = Get-NTFSPermissions -path $path
+    $permissions | Export-Csv -Path $outputCsv -Append -NoTypeInformation
+
+    $subdirectories = Get-ChildItem -Path $path -Directory
+    foreach ($subdir in $subdirectories) {
+        Get-AllPermissions -path $subdir.FullName
+    }
+}
+
+# Initialize the CSV file
+"Path,Identity,AccessControl,Permissions,IsInherited" | Out-File -FilePath $outputCsv
+
+# Start scanning from the root directory
+Get-AllPermissions -path $rootDirectory
+
+Write-Output "NTFS Permissions report has been generated for you at $outputCsv"
+
+#Alternatively if that doesn't work try 
+
+
+# Define the file server and the root directory to start the scan
+$server = "<server>"
+$rootDirectory = "\\$server\Share"
+
+# Define the output CSV file
+$outputCsv = "C:\Temp\NTFS_Permissions_FileServerReport.csv"
+
+# Function to get NTFS permissions
+function Get-NTFSPermissions {
+    param (
+        [string]$path
+    )
+
+    $acl = Get-Acl -Path $path
+    foreach ($access in $acl.Access) {
+        [PSCustomObject]@{
+            Path           = $path
+            Identity       = $access.IdentityReference
+            AccessControl  = $access.AccessControlType
+            Permissions    = $access.FileSystemRights
+            IsInherited    = $access.IsInherited
+        }
+    }
+}
+
+# Recursive function to scan directories and subdirectories
+function Get-AllPermissions {
+    param (
+        [string]$path
+    )
+
+    $permissions = Get-NTFSPermissions -path $path
+    $permissions | Export-Csv -Path $outputCsv -Append -NoTypeInformation
+
+    $subdirectories = Get-ChildItem -Path $path -Directory
+    foreach ($subdir in $subdirectories) {
+        Get-AllPermissions -path $subdir.FullName
+    }
+}
+
+# Initialize the CSV file
+"Path,Identity,AccessControl,Permissions,IsInherited" | Out-File -FilePath $outputCsv
+
+# Start scanning from the root directory
+Get-AllPermissions -path $rootDirectory
+
+Write-Output "NTFS Permissions report has been generated for you at $outputCsv"
