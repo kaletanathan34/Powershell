@@ -1,0 +1,34 @@
+function Get-ADUserLastLogon {
+    param (
+        [string]$Domain = "YourDomainName",
+        [string]$OutputFile = "C:\ADUserLastLogon.csv"
+    )
+
+    # Ensure the Active Directory module is imported
+    Import-Module ActiveDirectory
+
+    # Get all users from the specified domain
+    $users = Get-ADUser -Filter * -Property DisplayName, LastLogonDate
+
+    # Create an array to hold the user logon details
+    $userLogonDetails = @()
+
+    # Loop through each user and get their last logon time
+    foreach ($user in $users) {
+        $userLogonDetail = [PSCustomObject]@{
+            DisplayName  = $user.DisplayName
+            LastLogonDate = $user.LastLogonDate
+        }
+        $userLogonDetails += $userLogonDetail
+    }
+
+    # Export the results to a CSV file
+    $userLogonDetails | Export-Csv -Path $OutputFile -NoTypeInformation
+
+    Write-Output "User last logon details have been exported to $OutputFile."
+}
+
+# Example usage
+Get-ADUserLastLogon -Domain "YourDomainName" -OutputFile "C:\ADUserLastLogon.csv"
+
+#Or if you have multiple client domains rename the file to C:\(clientname)ADUserLastLogon.csv
